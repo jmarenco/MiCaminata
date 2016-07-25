@@ -14,11 +14,14 @@ public class Recorrido
     private Location _ultima;
     private double _distancia;
 
-    public Recorrido()
+    public Recorrido(Location inicio)
     {
         _ticks = new ArrayList<Tick>();
         _ultima = null;
         _distancia = 0;
+
+        if (inicio != null)
+            agregar(new Date(), inicio);
     }
 
     public void agregar(Date timestamp, Location location)

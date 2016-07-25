@@ -8,6 +8,7 @@ import android.os.Handler;
 import android.widget.Button;
 import android.widget.TextView;
 import android.view.*;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -19,7 +20,6 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.util.Date;
-import java.text.DateFormat;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 {
@@ -39,7 +39,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         _boton = (Button)findViewById(R.id.button);
         _texto = (TextView)findViewById(R.id.textView);
-        _status = (TextView)findViewById(R.id.bottomView);
+        // _status = (TextView)findViewById(R.id.bottomView);
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
@@ -49,47 +49,51 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap)
     {
-        // Context context = getApplicationContext();
-        // Toast.makeText(context, "onMapReady()", Toast.LENGTH_SHORT).show();
-
         _map = googleMap;
         _locator = new MockLocator(_map);
 
-        if( mostrarUbicacion() == false)
+        if( ubicarInicio() == false)
             _timerHandler.postDelayed(_timerRunnable, _tryTime);
     }
 
-    private boolean mostrarUbicacion()
+    private Location _inicio;
+
+    private boolean ubicarInicio()
     {
-        Location location = _locator.get();
-
-        if (location != null)
+        if (_inicio == null )
         {
-            LatLng posicion = new LatLng(location.getLatitude(), location.getLongitude());
+            _inicio = _locator.get();
 
-            _map.addMarker(new MarkerOptions().position(posicion).title("Inicio"));
-            _map.moveCamera(CameraUpdateFactory.newLatLng(posicion));
+            if (_inicio != null)
+            {
+                LatLng posicion = new LatLng(_inicio.getLatitude(), _inicio.getLongitude());
+                _map.moveCamera(CameraUpdateFactory.newLatLngZoom(posicion, 14.0f));
+
+                // _map.addMarker(new MarkerOptions().position(posicion).title("Inicio"));
+                //_map.moveCamera(CameraUpdateFactory.newLatLng(posicion));
+            }
         }
 
-        return location != null;
+        return _inicio != null;
     }
 
     public void onClick(View view)
     {
         if (_recorrido == null )
         {
-            _recorrido = new Recorrido();
-            _boton.setText("TERMINAR");
-            _status.setText(String.format("Actualizacion: %.2f seg", _tickTime / 1000.0));
+            _recorrido = new Recorrido(_inicio);
+            _boton.setText("STOP");
             _startTime = System.currentTimeMillis();
             _timerHandler.postDelayed(_timerRunnable, _tickTime);
+
+            status(String.format("Actualizacion: %d seg", _tickTime / 1000));
         }
         else
         {
             guardarRecorrido();
 
             _recorrido = null;
-            _boton.setText("COMENZAR");
+            _boton.setText("START");
             _timerHandler.removeCallbacks(_timerRunnable);
         }
     }
@@ -128,7 +132,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         private void intentarUbicacion()
         {
-            if (mostrarUbicacion() == false)
+            if (ubicarInicio() == false)
                 _timerHandler.postDelayed(_timerRunnable, _tryTime);
             else
                  _timerHandler.removeCallbacks(_timerRunnable);
@@ -175,7 +179,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             double velocidad = _recorrido.distancia() / (millis / 1000.0);
 
             _texto.setText(String.format("%02d:%02d - %.2f km", hours, minutes, _recorrido.distancia()));
-            _status.setText(String.format("%.2f km/h -  Locs: %d/%d", velocidad, _posiciones, _totales));
+            status(String.format("%.2f km/h -  Locs: %d/%d", velocidad, _posiciones, _totales));
         }
     };
 
@@ -188,9 +192,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 //        _boton.setText("RECOMENZAR");
 //    }
 
+    public void status(String mensaje)
+    {
+        Toast.makeText(getApplicationContext(), mensaje, Toast.LENGTH_SHORT).show();
+    }
+
     private void guardarRecorrido()
     {
-        EscritorRecorrido escritor = new EscritorRecorrido(_recorrido, _status);
+        EscritorRecorrido escritor = new EscritorRecorrido(_recorrido, this);
         escritor.escribir();
     }
 

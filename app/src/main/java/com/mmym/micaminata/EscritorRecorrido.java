@@ -12,12 +12,12 @@ import java.util.Date;
 public class EscritorRecorrido
 {
     private Recorrido _recorrido;
-    private TextView _status;
+    private MapsActivity _parent;
 
-    public EscritorRecorrido(Recorrido recorrido, TextView status)
+    public EscritorRecorrido(Recorrido recorrido, MapsActivity parent)
     {
         _recorrido = recorrido;
-        _status = status;
+        _parent = parent;
     }
 
     public void escribir()
@@ -50,12 +50,12 @@ public class EscritorRecorrido
             outputStream.flush();
             outputStream.close();
 
-            _status.setText("Guardado: " + archivo);
+            _parent.status("Guardado: " + archivo);
         }
         catch (Exception e)
         {
             e.printStackTrace();
-            _status.setText("Problemas! " + e.getMessage());
+            _parent.status("Problemas! " + e.getMessage());
         }
     }
 
@@ -66,7 +66,7 @@ public class EscritorRecorrido
         if (Environment.MEDIA_MOUNTED.equals(state))
             return true;
 
-        _status.setText("External storage not writable!");
+        _parent.status("External storage not writable!");
         return false;
     }
 }
