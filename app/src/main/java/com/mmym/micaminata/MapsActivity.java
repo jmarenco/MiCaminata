@@ -29,7 +29,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private Recorrido _recorrido = null;
     private Locator _locator;
-    private String _version = "0.80";
+    private String _version = "0.81";
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -53,7 +53,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap)
     {
         _map = googleMap;
-        _locator = new MockLocator(_map);
+        _locator = new RealLocator(_map);
 
         if( ubicarInicio() == false)
             _timerHandler.postDelayed(_timerRunnable, _tryTime);
@@ -187,10 +187,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             minutes = minutes % 60;
             seconds = seconds % 60;
 
-            double velocidad = _recorrido.distancia() / (millis / 1000.0);
+            double velocidad = _recorrido.distancia() / (millis / 3600000.0);
 
             texto(String.format("%02d:%02d - %.2f km", hours, minutes, _recorrido.distancia()));
-            status(String.format("Locs: %d/%d - %.2f km/h - %d ticks", _posiciones, _totales, velocidad, _recorrido.getTicks().size()));
+            status(String.format("%.2f km/h - Locs: %d/%d - %d ticks", velocidad, _posiciones, _totales, _recorrido.getTicks().size()));
         }
     };
 
