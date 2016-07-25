@@ -66,7 +66,9 @@ public class EscritorRecorrido
         if (Environment.MEDIA_MOUNTED.equals(state))
             return true;
 
-        _parent.status("External storage not writable!");
+        _parent.status("No se pudo guardar la ruta");
+        _parent.toast("Sin permisos de escritura!");
+
         return false;
     }
 }

@@ -14,8 +14,12 @@ public class Recorrido
     private Location _ultima;
     private double _distancia;
 
-    public Recorrido(Location inicio)
+    private MapsActivity debug;
+
+    public Recorrido(Location inicio, MapsActivity parent)
     {
+        debug = parent;
+
         _ticks = new ArrayList<Tick>();
         _ultima = null;
         _distancia = 0;
@@ -30,10 +34,25 @@ public class Recorrido
             return;
 
         if (_ultima != null)
-            _distancia += _ultima.distanceTo(location);
+            _distancia += distancia(_ultima, location);
 
         _ticks.add(new Tick(timestamp, location));
         _ultima = location;
+    }
+
+    private double distancia(Location primera, Location segunda)
+    {
+        double earthRadius = 6371000; // meters
+        double dLat = Math.toRadians(segunda.getLatitude()-primera.getLatitude());
+        double dLng = Math.toRadians(segunda.getLongitude()-primera.getLongitude());
+        double a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(Math.toRadians(primera.getLatitude())) * Math.cos(Math.toRadians(segunda.getLatitude())) * Math.sin(dLng/2) * Math.sin(dLng/2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        double ret = earthRadius * c;
+
+        debug.status(String.format("prim = (%f, %f), seg = (%f, %f) - dLat = %f - dLng = %f - a = %f - c = %f - ret = %f",
+                primera.getLatitude(), primera.getLongitude(), segunda.getLatitude(), segunda.getLongitude(), dLat, dLng, a, c, ret));
+
+        return ret;
     }
 
     public double distancia()

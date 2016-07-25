@@ -15,7 +15,6 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
@@ -30,6 +29,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private Recorrido _recorrido = null;
     private Locator _locator;
+    private String _version = "0.76";
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -39,11 +39,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         _boton = (Button)findViewById(R.id.button);
         _texto = (TextView)findViewById(R.id.textView);
-        // _status = (TextView)findViewById(R.id.bottomView);
+        _status = (TextView)findViewById(R.id.textStatus);
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        status("Versión " + _version);
+        texto("Mi caminata!");
     }
 
     @Override
@@ -57,6 +60,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private Location _inicio;
+    private int _intentos = 0;
 
     private boolean ubicarInicio()
     {
@@ -69,8 +73,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 LatLng posicion = new LatLng(_inicio.getLatitude(), _inicio.getLongitude());
                 _map.moveCamera(CameraUpdateFactory.newLatLngZoom(posicion, 14.0f));
 
-                // _map.addMarker(new MarkerOptions().position(posicion).title("Inicio"));
-                //_map.moveCamera(CameraUpdateFactory.newLatLng(posicion));
+                status(String.format("Inicio: (%.3f, %.3f)", _inicio.getLatitude(), _inicio.getLatitude()));
+            }
+            else
+            {
+                _intentos += 1;
+                status("Versión " + _version + " - Obteniendo ubicación ... [" + _intentos + "]");
             }
         }
 
@@ -81,19 +89,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     {
         if (_recorrido == null )
         {
-            _recorrido = new Recorrido(_inicio);
-            _boton.setText("STOP");
+            _recorrido = new Recorrido(_inicio, this);
+            _boton.setText("Stop");
+
             _startTime = System.currentTimeMillis();
+            _timerHandler.removeCallbacks(_timerRunnable);
             _timerHandler.postDelayed(_timerRunnable, _tickTime);
 
+            toast("Recorrido iniciado!");
+            texto("A caminar!");
             status(String.format("Actualizacion: %d seg", _tickTime / 1000));
         }
         else
         {
+            toast("Recorrido finalizado!");
             guardarRecorrido();
 
             _recorrido = null;
-            _boton.setText("START");
+            _boton.setText("Start!");
             _timerHandler.removeCallbacks(_timerRunnable);
         }
     }
@@ -101,7 +114,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     // Hora de inicio del timer
     private long _startTime = 0;
     private long _tickTime = 20000;
-    private long _tryTime = 2000;
+    private long _tryTime = 5000;
 
     //runs without a timer by reposting this handler at the end of the runnable
     Handler _timerHandler = new Handler();
@@ -143,7 +156,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             Location location = _locator.get();
             if (location != null)
             {
-                Date ahora = new Date(); // _calendar.getTime()
+                Date ahora = new Date();
                 LatLng posicion = new LatLng(location.getLatitude(), location.getLongitude());
 
                 _recorrido.agregar(ahora, location);
@@ -178,23 +191,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             double velocidad = _recorrido.distancia() / (millis / 1000.0);
 
-            _texto.setText(String.format("%02d:%02d - %.2f km", hours, minutes, _recorrido.distancia()));
-            status(String.format("%.2f km/h -  Locs: %d/%d", velocidad, _posiciones, _totales));
+            texto(String.format("%02d:%02d - %.2f km", hours, minutes, _recorrido.distancia()));
+            // status(String.format("Locs: %d/%d - %.2f km/h - Dist: %f", _posiciones, _totales, velocidad, _recorrido.distancia()));
         }
     };
 
-//    @Override
-//    public void onPause()
-//    {
-//        super.onPause();
-//
-//        _timerHandler.removeCallbacks(_timerRunnable);
-//        _boton.setText("RECOMENZAR");
-//    }
-
-    public void status(String mensaje)
+    public void toast(String mensaje)
     {
         Toast.makeText(getApplicationContext(), mensaje, Toast.LENGTH_SHORT).show();
+    }
+    public void texto(String mensaje)
+    {
+        _texto.setText(mensaje);
+    }
+    public void status(String mensaje)
+    {
+        _status.setText(mensaje);
     }
 
     private void guardarRecorrido()
