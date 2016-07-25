@@ -1,9 +1,10 @@
 package com.mmym.micaminata;
 
-import com.google.android.gms.maps.model.LatLng;
-
+import android.content.Context;
 import android.location.*;
 
+import java.io.FileOutputStream;
+import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
@@ -35,5 +36,10 @@ public class Recorrido
     public double distancia()
     {
         return _distancia;
+    }
+
+    public ArrayList<Tick> getTicks()
+    {
+        return _ticks;
     }
 }

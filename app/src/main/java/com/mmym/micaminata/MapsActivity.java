@@ -1,5 +1,6 @@
 package com.mmym.micaminata;
 
+import android.content.Context;
 import android.location.Location;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
@@ -15,6 +16,7 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import java.io.FileOutputStream;
 import java.util.Calendar;
 import java.util.Date;
 import java.text.DateFormat;
@@ -28,7 +30,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private Recorrido _recorrido = null;
     private Locator _locator;
-    private Calendar _calendar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -53,7 +54,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         _map = googleMap;
         _locator = new MockLocator(_map);
-        _calendar = Calendar.getInstance();
 
         // LatLng posicion = _locator.get();
 
@@ -72,6 +72,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         else
         {
+            guardarRecorrido();
+
             _recorrido = null;
             _boton.setText("COMENZAR");
             _timerHandler.removeCallbacks(_timerRunnable);
@@ -140,4 +142,30 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 //        _timerHandler.removeCallbacks(_timerRunnable);
 //        _boton.setText("RECOMENZAR");
 //    }
+
+    private void guardarRecorrido()
+    {
+        if (_recorrido == null)
+            return;
+
+        try
+        {
+            String archivo = DateFormat.getDateTimeInstance().format(new Date()) + ".dat";
+            FileOutputStream outputStream = openFileOutput(archivo, Context.MODE_PRIVATE);
+
+            for(Tick tick: _recorrido.getTicks())
+            {
+                String linea = DateFormat.getDateTimeInstance().format(tick.getTimestamp()) + " | " + tick.getPosicion().latitude + " | " + tick.getPosicion().longitude;
+                outputStream.write(linea.getBytes());
+            }
+
+            outputStream.close();
+            _texto.setText("Guardado: " + archivo );
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            _texto.setText("Problemas! " + e.getMessage());
+        }
+    }
 }
