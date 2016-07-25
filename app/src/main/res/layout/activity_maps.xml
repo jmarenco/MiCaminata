@@ -16,16 +16,27 @@
             android:text="COMENZAR"
             android:id="@+id/button"
             android:onClick="onClick"
-            android:nestedScrollingEnabled="false" />
+            android:nestedScrollingEnabled="false"
+            android:layout_gravity="left" />
 
         <TextView
-            android:layout_width="182dp"
+            android:layout_width="164dp"
             android:layout_height="match_parent"
             android:textAppearance="?android:attr/textAppearanceLarge"
-            android:text="0 km - 0:00"
+            android:text="Mi caminata!"
             android:id="@+id/textView"
             android:layout_alignParentTop="true"
-            android:layout_centerHorizontal="true" />
+            android:layout_centerHorizontal="true"
+            android:layout_gravity="center_horizontal"
+            android:gravity="center" />
+
+        <Button
+            android:layout_width="39dp"
+            android:layout_height="match_parent"
+            android:text="X"
+            android:id="@+id/closeButton"
+            android:onClick="onClose"
+            android:nestedScrollingEnabled="true" />
 
     </LinearLayout>
 
@@ -34,9 +45,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/map"
     android:name="com.google.android.gms.maps.SupportMapFragment"
-    android:layout_width="386dp"
-    android:layout_height="455dp"
-    tools:context="com.mmym.micaminata.MapsActivity"/>
+    android:layout_width="300dp"
+    android:layout_height="316dp"
+    tools:context="com.mmym.micaminata.MapsActivity" />
 
     <TextView
         android:layout_width="match_parent"
@@ -44,6 +55,7 @@
         android:text=""
         android:id="@+id/bottomView"
         android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true" />
+        android:layout_centerHorizontal="true"
+        android:layout_gravity="left|right" />
 
 </LinearLayout>

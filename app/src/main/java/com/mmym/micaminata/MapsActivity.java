@@ -1,6 +1,6 @@
 package com.mmym.micaminata;
 
-import android.content.Context;
+import android.graphics.Color;
 import android.location.Location;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
@@ -15,9 +15,9 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 
-import java.io.FileOutputStream;
-import java.util.Calendar;
 import java.util.Date;
 import java.text.DateFormat;
 
@@ -55,10 +55,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         _map = googleMap;
         _locator = new MockLocator(_map);
 
-        // LatLng posicion = _locator.get();
+        if( mostrarUbicacion() == false)
+            _timerHandler.postDelayed(_timerRunnable, _tryTime);
+    }
 
-        // _map.addMarker(new MarkerOptions().position(posicion).title("Inicio"));
-        // _map.moveCamera(CameraUpdateFactory.newLatLng(posicion));
+    private boolean mostrarUbicacion()
+    {
+        Location location = _locator.get();
+
+        if (location != null)
+        {
+            LatLng posicion = new LatLng(location.getLatitude(), location.getLongitude());
+
+            _map.addMarker(new MarkerOptions().position(posicion).title("Inicio"));
+            _map.moveCamera(CameraUpdateFactory.newLatLng(posicion));
+        }
+
+        return location != null;
     }
 
     public void onClick(View view)
@@ -67,6 +80,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         {
             _recorrido = new Recorrido();
             _boton.setText("TERMINAR");
+            _status.setText(String.format("Actualizacion: %.2f seg", _tickTime / 1000.0));
             _startTime = System.currentTimeMillis();
             _timerHandler.postDelayed(_timerRunnable, _tickTime);
         }
@@ -83,6 +97,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     // Hora de inicio del timer
     private long _startTime = 0;
     private long _tickTime = 20000;
+    private long _tryTime = 2000;
 
     //runs without a timer by reposting this handler at the end of the runnable
     Handler _timerHandler = new Handler();
@@ -94,22 +109,52 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         @Override
         public void run()
         {
-            actualizarRecorrido();
-            actualizarTextos();
+            if (_recorrido == null )
+            {
+                // Estamos al comienzo de la aplicacion, intentando mostrar la ubicacion actual
+                intentarUbicacion();
+            }
+            else
+            {
+                // Estamos registrando el recorrido
+                actualizarRecorrido();
+                actualizarTextos();
 
-            _timerHandler.postDelayed(this, _tickTime);
+                _timerHandler.postDelayed(this, _tickTime);
+            }
+        }
+
+        private Polyline _polyline;
+
+        private void intentarUbicacion()
+        {
+            if (mostrarUbicacion() == false)
+                _timerHandler.postDelayed(_timerRunnable, _tryTime);
+            else
+                 _timerHandler.removeCallbacks(_timerRunnable);
         }
 
         private void actualizarRecorrido()
         {
             Location location = _locator.get();
-            if (location != null && _recorrido != null)
+            if (location != null)
             {
                 Date ahora = new Date(); // _calendar.getTime()
                 LatLng posicion = new LatLng(location.getLatitude(), location.getLongitude());
 
                 _recorrido.agregar(ahora, location);
-                _map.addMarker(new MarkerOptions().position(posicion).title(DateFormat.getDateTimeInstance().format(ahora)));
+
+                PolylineOptions options = new PolylineOptions();
+                options.color(Color.RED);
+                options.width(2);
+
+                for(Tick tick: _recorrido.getTicks())
+                    options.add(tick.getPosicion());
+
+                if (_polyline != null)
+                    _polyline.remove();
+
+                _polyline = _map.addPolyline(options);
                 _map.moveCamera(CameraUpdateFactory.newLatLng(posicion));
                 _posiciones += 1;
             }
@@ -129,8 +174,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             double velocidad = _recorrido.distancia() / (millis / 1000.0);
 
-            _texto.setText(String.format("%02d:%02d:%02d - %.2f km", hours, minutes, seconds, _recorrido.distancia()));
-            _texto.setText(String.format("%.2f km/h -  %d/%d", velocidad, _posiciones, _totales));
+            _texto.setText(String.format("%02d:%02d - %.2f km", hours, minutes, _recorrido.distancia()));
+            _status.setText(String.format("%.2f km/h -  Locs: %d/%d", velocidad, _posiciones, _totales));
         }
     };
 
@@ -145,27 +190,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private void guardarRecorrido()
     {
-        if (_recorrido == null)
-            return;
+        EscritorRecorrido escritor = new EscritorRecorrido(_recorrido, _status);
+        escritor.escribir();
+    }
 
-        try
-        {
-            String archivo = DateFormat.getDateTimeInstance().format(new Date()) + ".dat";
-            FileOutputStream outputStream = openFileOutput(archivo, Context.MODE_PRIVATE);
-
-            for(Tick tick: _recorrido.getTicks())
-            {
-                String linea = DateFormat.getDateTimeInstance().format(tick.getTimestamp()) + " | " + tick.getPosicion().latitude + " | " + tick.getPosicion().longitude;
-                outputStream.write(linea.getBytes());
-            }
-
-            outputStream.close();
-            _texto.setText("Guardado: " + archivo );
-        }
-        catch (Exception e)
-        {
-            e.printStackTrace();
-            _texto.setText("Problemas! " + e.getMessage());
-        }
+    public void onClose(View view)
+    {
+        _timerHandler.removeCallbacks(_timerRunnable);
+        this.finish();
     }
 }
