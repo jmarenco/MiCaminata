@@ -29,7 +29,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private Recorrido _recorrido = null;
     private Locator _locator;
-    private String _version = "0.76";
+    private String _version = "0.80";
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -89,7 +89,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     {
         if (_recorrido == null )
         {
-            _recorrido = new Recorrido(_inicio, this);
+            _recorrido = new Recorrido(_inicio);
             _boton.setText("Stop");
 
             _startTime = System.currentTimeMillis();
@@ -156,11 +156,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             Location location = _locator.get();
             if (location != null)
             {
-                Date ahora = new Date();
+                _recorrido.agregar(new Date(), location);
+
                 LatLng posicion = new LatLng(location.getLatitude(), location.getLongitude());
-
-                _recorrido.agregar(ahora, location);
-
                 PolylineOptions options = new PolylineOptions();
                 options.color(Color.RED);
                 options.width(2);
@@ -192,7 +190,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             double velocidad = _recorrido.distancia() / (millis / 1000.0);
 
             texto(String.format("%02d:%02d - %.2f km", hours, minutes, _recorrido.distancia()));
-            // status(String.format("Locs: %d/%d - %.2f km/h - Dist: %f", _posiciones, _totales, velocidad, _recorrido.distancia()));
+            status(String.format("Locs: %d/%d - %.2f km/h - %d ticks", _posiciones, _totales, velocidad, _recorrido.getTicks().size()));
         }
     };
 
