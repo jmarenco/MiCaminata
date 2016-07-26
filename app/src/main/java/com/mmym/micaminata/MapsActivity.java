@@ -33,7 +33,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private Recorrido _recorrido = null;
     private Locator _locator;
-    private String _version = "0.85";
+    private String _version = "0.86";
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -241,15 +241,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private void guardarRecorrido()
     {
-        final MapsActivity _this = this;
-        new AlertDialog.Builder(getApplicationContext())
+        new AlertDialog.Builder(MapsActivity.this)
                 .setTitle("Guardar ruta")
                 .setMessage("Querés guardar la ruta en el teléfono?")
                 .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener()
                 {
                     public void onClick(DialogInterface dialog, int which)
                     {
-                        EscritorRecorrido escritor = new EscritorRecorrido(_recorrido, _this);
+                        EscritorRecorrido escritor = new EscritorRecorrido(_recorrido, MapsActivity.this);
                         escritor.escribir();
                     }
                 })

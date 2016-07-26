@@ -23,10 +23,17 @@ public class EscritorRecorrido
     public void escribir()
     {
         if (_recorrido == null)
+        {
+            _parent.status("No hay recorrido para guardar!");
             return;
+        }
 
         if (isExternalStorageWritable() == false)
+        {
+            _parent.status("No se pudo guardar la ruta");
+            _parent.toast("Sin permisos de escritura!");
             return;
+        }
 
         try
         {
@@ -67,9 +74,6 @@ public class EscritorRecorrido
         String state = Environment.getExternalStorageState();
         if (Environment.MEDIA_MOUNTED.equals(state))
             return true;
-
-        _parent.status("No se pudo guardar la ruta");
-        _parent.toast("Sin permisos de escritura!");
 
         return false;
     }
