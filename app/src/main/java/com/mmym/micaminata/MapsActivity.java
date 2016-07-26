@@ -33,7 +33,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private Recorrido _recorrido = null;
     private Locator _locator;
-    private String _version = "0.87";
+    private String _version = "0.88";
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
