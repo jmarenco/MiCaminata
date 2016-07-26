@@ -1,6 +1,8 @@
 package com.mmym.micaminata;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.graphics.Color;
 import android.location.Location;
 import android.os.PowerManager;
@@ -31,7 +33,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private Recorrido _recorrido = null;
     private Locator _locator;
-    private String _version = "0.83";
+    private String _version = "0.85";
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -239,8 +241,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private void guardarRecorrido()
     {
-        EscritorRecorrido escritor = new EscritorRecorrido(_recorrido, this);
-        escritor.escribir();
+        final MapsActivity _this = this;
+        new AlertDialog.Builder(getApplicationContext())
+                .setTitle("Guardar ruta")
+                .setMessage("Querés guardar la ruta en el teléfono?")
+                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener()
+                {
+                    public void onClick(DialogInterface dialog, int which)
+                    {
+                        EscritorRecorrido escritor = new EscritorRecorrido(_recorrido, _this);
+                        escritor.escribir();
+                    }
+                })
+                .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener()
+                {
+                    public void onClick(DialogInterface dialog, int which)
+                    {
+                        // No hacemos nada
+                    }
+                })
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
     }
 
     public void onClose(View view)

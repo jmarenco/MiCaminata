@@ -32,18 +32,20 @@ public class EscritorRecorrido
         {
             String root = Environment.getExternalStorageDirectory().toString();
             File myDir = new File(root + "/Rutas");
-            myDir.mkdirs();
+
+            if (myDir.exists() == false)
+                myDir.mkdirs();
 
             String archivo = DateFormat.getDateTimeInstance().format(new Date()) + ".dat";
             File file = new File (myDir, archivo);
 
-            if (file.exists())
+            if (file.exists() == true)
                 file.delete();
 
             FileOutputStream outputStream = new FileOutputStream(file);
             for(Tick tick: _recorrido.getTicks())
             {
-                String linea = DateFormat.getDateTimeInstance().format(tick.getTimestamp()) + " | " + tick.getPosicion().latitude + " | " + tick.getPosicion().longitude;
+                String linea = DateFormat.getDateTimeInstance().format(tick.getTimestamp()) + " | " + tick.getPosicion().latitude + " | " + tick.getPosicion().longitude + "\r\n";
                 outputStream.write(linea.getBytes());
             }
 
