@@ -241,7 +241,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private void guardarRecorrido()
     {
-        Recorrido cache = _recorrido;
+        final Recorrido cache = _recorrido;
+        final MapsActivity thisMaps = this;
+
         new AlertDialog.Builder(MapsActivity.this)
                 .setTitle("Guardar ruta")
                 .setMessage("Querés guardar la ruta en el teléfono?")
@@ -249,7 +251,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 {
                     public void onClick(DialogInterface dialog, int which)
                     {
-                        EscritorRecorrido escritor = new EscritorRecorrido(cache, MapsActivity.this);
+                        EscritorRecorrido escritor = new EscritorRecorrido(cache, thisMaps);
                         escritor.escribir();
                     }
                 })
