@@ -31,7 +31,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private Recorrido _recorrido = null;
     private Locator _locator;
-    private String _version = "0.82";
+    private String _version = "0.83";
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -75,9 +75,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if (_inicio != null)
             {
                 LatLng posicion = new LatLng(_inicio.getLatitude(), _inicio.getLongitude());
-                _map.moveCamera(CameraUpdateFactory.newLatLngZoom(posicion, 14.0f));
+                _map.moveCamera(CameraUpdateFactory.newLatLngZoom(posicion, 16.0f));
 
-                status(String.format("Inicio: (%.3f, %.3f)", _inicio.getLatitude(), _inicio.getLatitude()));
+                status(String.format("Inicio: (%.3f, %.3f)", _inicio.getLatitude(), _inicio.getLongitude()));
             }
             else
             {
