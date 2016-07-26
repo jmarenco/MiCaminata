@@ -1,7 +1,9 @@
 package com.mmym.micaminata;
 
+import android.content.Context;
 import android.graphics.Color;
 import android.location.Location;
+import android.os.PowerManager;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.os.Handler;
@@ -29,7 +31,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private Recorrido _recorrido = null;
     private Locator _locator;
-    private String _version = "0.81";
+    private String _version = "0.82";
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -59,9 +61,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             _timerHandler.postDelayed(_timerRunnable, _tryTime);
     }
 
+    // Ubicación actual
     private Location _inicio;
     private int _intentos = 0;
 
+    // Intenta obtener la ubicación actual
     private boolean ubicarInicio()
     {
         if (_inicio == null )
@@ -85,36 +89,56 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return _inicio != null;
     }
 
+    // Control de la aplicación durante el apagado de la pantalla
+    private PowerManager.WakeLock _wakelock;
+
+    // Click del botón principal
     public void onClick(View view)
     {
         if (_recorrido == null )
         {
+            // Iniciamos un nuevo recorrido
             _recorrido = new Recorrido(_inicio);
+            _polyoptions = null;
             _boton.setText("Stop");
 
+            // Wake lock para mantener la aplicación corriendo cuando se apague la pantalla
+            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            _wakelock = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "Mi Caminata");
+            _wakelock.acquire();
+
+            // Inicia el timer
             _startTime = System.currentTimeMillis();
             _timerHandler.removeCallbacks(_timerRunnable);
             _timerHandler.postDelayed(_timerRunnable, _tickTime);
 
+            // Información inicial
             toast("Recorrido iniciado!");
             texto("A caminar!");
             status(String.format("Actualizacion: %d seg", _tickTime / 1000));
         }
         else
         {
+            // Información final
             toast("Recorrido finalizado!");
             guardarRecorrido();
 
+            // Detiene el timer y libera el wake lock
             _recorrido = null;
             _boton.setText("Start!");
             _timerHandler.removeCallbacks(_timerRunnable);
+            _wakelock.release();
         }
     }
 
-    // Hora de inicio del timer
+    // Hora de inicio y parámetros del timer
     private long _startTime = 0;
     private long _tickTime = 20000;
     private long _tryTime = 5000;
+
+    // Ruta
+    private PolylineOptions _polyoptions;
+    private Polyline _polyline;
 
     //runs without a timer by reposting this handler at the end of the runnable
     Handler _timerHandler = new Handler();
@@ -141,8 +165,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         }
 
-        private Polyline _polyline;
-
+        // Intenta obtener la ubicación actual, y llama de nuevo al timer si no puede
         private void intentarUbicacion()
         {
             if (ubicarInicio() == false)
@@ -151,25 +174,31 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                  _timerHandler.removeCallbacks(_timerRunnable);
         }
 
+        // Actualiza el recorrido sobre el mapa
         private void actualizarRecorrido()
         {
             Location location = _locator.get();
             if (location != null)
             {
-                _recorrido.agregar(new Date(), location);
+                if (_polyoptions == null)
+                {
+                    _polyoptions = new PolylineOptions();
+                    _polyoptions.color(Color.RED);
+                    _polyoptions.width(2);
+
+                    for (Tick tick : _recorrido.getTicks())
+                        _polyoptions.add(tick.getPosicion());
+                }
 
                 LatLng posicion = new LatLng(location.getLatitude(), location.getLongitude());
-                PolylineOptions options = new PolylineOptions();
-                options.color(Color.RED);
-                options.width(2);
 
-                for(Tick tick: _recorrido.getTicks())
-                    options.add(tick.getPosicion());
+                _recorrido.agregar(new Date(), location);
+                _polyoptions.add(posicion);
 
                 if (_polyline != null)
                     _polyline.remove();
 
-                _polyline = _map.addPolyline(options);
+                _polyline = _map.addPolyline(_polyoptions);
                 _map.moveCamera(CameraUpdateFactory.newLatLng(posicion));
                 _posiciones += 1;
             }
@@ -177,6 +206,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             _totales += 1;
         }
 
+        // Actualiza la información en pantalla sobre el recorrido
         private void actualizarTextos()
         {
             long millis = System.currentTimeMillis() - _startTime;
