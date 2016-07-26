@@ -104,7 +104,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             // Wake lock para mantener la aplicación corriendo cuando se apague la pantalla
             PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-            _wakelock = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "Mi Caminata");
+            _wakelock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Mi Caminata");
             _wakelock.acquire();
 
             // Inicia el timer
