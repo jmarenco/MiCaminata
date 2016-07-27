@@ -33,7 +33,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private Recorrido _recorrido = null;
     private Locator _locator;
-    private String _version = "0.88";
+    private String _version = "0.89";
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -106,7 +106,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             // Wake lock para mantener la aplicación corriendo cuando se apague la pantalla
             PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-            _wakelock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Mi Caminata");
+            _wakelock = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "Mi Caminata");
             _wakelock.acquire();
 
             // Inicia el timer
@@ -148,10 +148,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     {
         private int _posiciones = 0;
         private int _totales = 0;
+        private int _ejecuciones = 0;
 
         @Override
         public void run()
         {
+            _ejecuciones += 1;
+
             if (_recorrido == null )
             {
                 // Estamos al comienzo de la aplicacion, intentando mostrar la ubicacion actual
@@ -222,7 +225,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             double velocidad = _recorrido.distancia() / (millis / 3600000.0);
 
             texto(String.format("%02d:%02d - %.2f km", hours, minutes, _recorrido.distancia()));
-            status(String.format("%.2f km/h - Locs: %d/%d - %d ticks", velocidad, _posiciones, _totales, _recorrido.getTicks().size()));
+            status(String.format("%.2f km/h - Locs: %d/%d - %d ticks, %d tims", velocidad, _posiciones, _totales, _recorrido.getTicks().size(), _ejecuciones));
         }
     };
 

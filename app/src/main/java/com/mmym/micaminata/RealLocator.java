@@ -1,4 +1,5 @@
 package com.mmym.micaminata;
+import android.content.Context;
 import android.location.*;
 
 import com.google.android.gms.maps.GoogleMap;
