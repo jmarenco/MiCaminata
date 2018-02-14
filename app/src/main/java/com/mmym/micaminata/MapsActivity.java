@@ -36,7 +36,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private LocationManager _locationManager;
     private Recorrido _recorrido = null;
-    private String _version = "0.90";
+    private String _version = "0.91";
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -77,12 +77,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onLocationChanged(Location location)
     {
         _actual = location;
+        _posiciones += 1;
 
         if( _map != null )
             _map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(location.getLatitude(), location.getLongitude()), 16.0f));
 
         if( _recorrido == null )
-            status(String.format("Posición: (%.3f, %.3f)", location.getLatitude(), location.getLongitude()));
+            status(String.format("Posición: (%.3f, %.3f) - Versión: " + _version, location.getLatitude(), location.getLongitude()));
 
         if( _recorrido != null )
         {
@@ -144,7 +145,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             toast("Recorrido finalizado!");
             guardarRecorrido();
 
-            // Detiene el timer y libera el wake lock
+            // Libera el wake lock
             _recorrido = null;
             _boton.setText("Start!");
             _wakelock.release();
@@ -184,7 +185,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             _polyline = _map.addPolyline(_polyoptions);
             _map.moveCamera(CameraUpdateFactory.newLatLng(posicion));
-            _posiciones += 1;
         }
     }
 
@@ -201,8 +201,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         double velocidad = _recorrido.distancia() / (millis / 3600000.0);
 
-        texto(String.format("%02d:%02d - %.2f km", hours, minutes, _recorrido.distancia()));
-        status(String.format("%.2f km/h - Locs: %d - %d ticks", velocidad, _posiciones,_recorrido.getTicks().size()));
+        texto(String.format("%02d:%02d:%02d - %.2f km", hours, minutes, seconds, _recorrido.distancia()));
+        status(String.format("%.2f km/h - Locs: %d - Pts: %d", velocidad, _posiciones, _recorrido.getTicks().size()));
     }
 
     public void toast(String mensaje)
