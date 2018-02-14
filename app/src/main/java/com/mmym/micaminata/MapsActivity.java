@@ -5,10 +5,13 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Color;
 import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.content.Intent;
+import android.provider.Settings;
 import android.os.PowerManager;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
-import android.os.Handler;
 import android.widget.Button;
 import android.widget.TextView;
 import android.view.*;
@@ -24,16 +27,16 @@ import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.util.Date;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, LocationListener
 {
-    private GoogleMap _map;
+    private GoogleMap _map = null;
     private Button _boton;
     private TextView _texto;
     private TextView _status;
 
+    private LocationManager _locationManager;
     private Recorrido _recorrido = null;
-    private Locator _locator;
-    private String _version = "0.89";
+    private String _version = "0.90";
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -51,45 +54,64 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         status("Versión " + _version);
         texto("Mi caminata!");
+
+        // get Gps location service LocationManager object
+        try
+        {
+            _locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+            _locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 3000, 10, this);
+        }
+        catch (SecurityException e)
+        {
+            toast("No se pudo inicializar el LocationManager! " + e.getMessage());
+        }
     }
 
     @Override
     public void onMapReady(GoogleMap googleMap)
     {
         _map = googleMap;
-        _locator = new RealLocator(_map);
+    }
 
-        if( ubicarInicio() == false)
-            _timerHandler.postDelayed(_timerRunnable, _tryTime);
+    @Override
+    public void onLocationChanged(Location location)
+    {
+        _actual = location;
+
+        if( _map != null )
+            _map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(location.getLatitude(), location.getLongitude()), 16.0f));
+
+        if( _recorrido == null )
+            status(String.format("Posición: (%.3f, %.3f)", location.getLatitude(), location.getLongitude()));
+
+        if( _recorrido != null )
+        {
+            actualizarRecorrido(location);
+            actualizarTextos();
+        }
+    }
+
+    @Override
+    public void onProviderDisabled(String provider)
+    {
+        Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+        startActivity(intent);
+        toast("El GPS se ha desactivado!");
+    }
+
+    @Override
+    public void onProviderEnabled(String provider)
+    {
+        toast("Se activó el GPS!");
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras)
+    {
     }
 
     // Ubicación actual
-    private Location _inicio;
-    private int _intentos = 0;
-
-    // Intenta obtener la ubicación actual
-    private boolean ubicarInicio()
-    {
-        if (_inicio == null )
-        {
-            _inicio = _locator.get();
-
-            if (_inicio != null)
-            {
-                LatLng posicion = new LatLng(_inicio.getLatitude(), _inicio.getLongitude());
-                _map.moveCamera(CameraUpdateFactory.newLatLngZoom(posicion, 16.0f));
-
-                status(String.format("Inicio: (%.3f, %.3f)", _inicio.getLatitude(), _inicio.getLongitude()));
-            }
-            else
-            {
-                _intentos += 1;
-                status("Versión " + _version + " - Obteniendo ubicación ... [" + _intentos + "]");
-            }
-        }
-
-        return _inicio != null;
-    }
+    private Location _actual;
 
     // Control de la aplicación durante el apagado de la pantalla
     private PowerManager.WakeLock _wakelock;
@@ -100,7 +122,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (_recorrido == null )
         {
             // Iniciamos un nuevo recorrido
-            _recorrido = new Recorrido(_inicio);
+            _recorrido = new Recorrido(_actual);
             _polyoptions = null;
             _boton.setText("Stop");
 
@@ -111,13 +133,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             // Inicia el timer
             _startTime = System.currentTimeMillis();
-            _timerHandler.removeCallbacks(_timerRunnable);
-            _timerHandler.postDelayed(_timerRunnable, _tickTime);
 
             // Información inicial
             toast("Recorrido iniciado!");
             texto("A caminar!");
-            status(String.format("Actualizacion: %d seg", _tickTime / 1000));
         }
         else
         {
@@ -128,106 +147,63 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             // Detiene el timer y libera el wake lock
             _recorrido = null;
             _boton.setText("Start!");
-            _timerHandler.removeCallbacks(_timerRunnable);
             _wakelock.release();
         }
     }
 
     // Hora de inicio y parámetros del timer
     private long _startTime = 0;
-    private long _tickTime = 20000;
-    private long _tryTime = 5000;
 
     // Ruta
     private PolylineOptions _polyoptions;
     private Polyline _polyline;
+    private int _posiciones = 0;
 
-    //runs without a timer by reposting this handler at the end of the runnable
-    Handler _timerHandler = new Handler();
-    Runnable _timerRunnable = new Runnable()
+    // Actualiza el recorrido sobre el mapa
+    private void actualizarRecorrido(Location location)
     {
-        private int _posiciones = 0;
-        private int _totales = 0;
-        private int _ejecuciones = 0;
-
-        @Override
-        public void run()
+        if (location != null)
         {
-            _ejecuciones += 1;
-
-            if (_recorrido == null )
+            if (_polyoptions == null)
             {
-                // Estamos al comienzo de la aplicacion, intentando mostrar la ubicacion actual
-                intentarUbicacion();
-            }
-            else
-            {
-                // Estamos registrando el recorrido
-                actualizarRecorrido();
-                actualizarTextos();
+                _polyoptions = new PolylineOptions();
+                _polyoptions.color(Color.RED);
+                _polyoptions.width(2);
 
-                _timerHandler.postDelayed(this, _tickTime);
-            }
-        }
-
-        // Intenta obtener la ubicación actual, y llama de nuevo al timer si no puede
-        private void intentarUbicacion()
-        {
-            if (ubicarInicio() == false)
-                _timerHandler.postDelayed(_timerRunnable, _tryTime);
-            else
-                 _timerHandler.removeCallbacks(_timerRunnable);
-        }
-
-        // Actualiza el recorrido sobre el mapa
-        private void actualizarRecorrido()
-        {
-            Location location = _locator.get();
-            if (location != null)
-            {
-                if (_polyoptions == null)
-                {
-                    _polyoptions = new PolylineOptions();
-                    _polyoptions.color(Color.RED);
-                    _polyoptions.width(2);
-
-                    for (Tick tick : _recorrido.getTicks())
-                        _polyoptions.add(tick.getPosicion());
-                }
-
-                LatLng posicion = new LatLng(location.getLatitude(), location.getLongitude());
-
-                _recorrido.agregar(new Date(), location);
-                _polyoptions.add(posicion);
-
-                if (_polyline != null)
-                    _polyline.remove();
-
-                _polyline = _map.addPolyline(_polyoptions);
-                _map.moveCamera(CameraUpdateFactory.newLatLng(posicion));
-                _posiciones += 1;
+                for (Tick tick : _recorrido.getTicks())
+                    _polyoptions.add(tick.getPosicion());
             }
 
-            _totales += 1;
+            LatLng posicion = new LatLng(location.getLatitude(), location.getLongitude());
+
+            _recorrido.agregar(new Date(), location);
+            _polyoptions.add(posicion);
+
+            if (_polyline != null)
+                _polyline.remove();
+
+            _polyline = _map.addPolyline(_polyoptions);
+            _map.moveCamera(CameraUpdateFactory.newLatLng(posicion));
+            _posiciones += 1;
         }
+    }
 
-        // Actualiza la información en pantalla sobre el recorrido
-        private void actualizarTextos()
-        {
-            long millis = System.currentTimeMillis() - _startTime;
-            int seconds = (int) (millis / 1000);
-            int minutes = seconds / 60;
-            int hours = minutes / 60;
+    // Actualiza la información en pantalla sobre el recorrido
+    private void actualizarTextos()
+    {
+        long millis = System.currentTimeMillis() - _startTime;
+        int seconds = (int) (millis / 1000);
+        int minutes = seconds / 60;
+        int hours = minutes / 60;
 
-            minutes = minutes % 60;
-            seconds = seconds % 60;
+        minutes = minutes % 60;
+        seconds = seconds % 60;
 
-            double velocidad = _recorrido.distancia() / (millis / 3600000.0);
+        double velocidad = _recorrido.distancia() / (millis / 3600000.0);
 
-            texto(String.format("%02d:%02d - %.2f km", hours, minutes, _recorrido.distancia()));
-            status(String.format("%.2f km/h - Locs: %d/%d - %d ticks, %d tims", velocidad, _posiciones, _totales, _recorrido.getTicks().size(), _ejecuciones));
-        }
-    };
+        texto(String.format("%02d:%02d - %.2f km", hours, minutes, _recorrido.distancia()));
+        status(String.format("%.2f km/h - Locs: %d - %d ticks", velocidad, _posiciones,_recorrido.getTicks().size()));
+    }
 
     public void toast(String mensaje)
     {
@@ -271,7 +247,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     public void onClose(View view)
     {
-        _timerHandler.removeCallbacks(_timerRunnable);
         this.finish();
     }
 }

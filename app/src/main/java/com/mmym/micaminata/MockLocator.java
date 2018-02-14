@@ -5,6 +5,7 @@ import android.location.*;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 
+@Deprecated
 public class MockLocator implements Locator
 {
     private GoogleMap _map;
